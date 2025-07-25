@@ -18,7 +18,7 @@ from typing import Dict
 import numpy as np
 from scipy.spatial import ConvexHull
 
-from .geometry import slice_tesseract, Edge
+from .geometry import slice_tesseract, Edge, SliceError
 
 __all__ = ["edge_metrics", "analyze_slice"]
 
@@ -39,6 +39,12 @@ def edge_metrics(edges: list[Edge]) -> Dict[str, float]:
     -------
     dict with keys: count, min, max, mean, std, median
     """
+    if not edges:
+        return {
+            "count": 0, "min": 0.0, "max": 0.0, 
+            "mean": 0.0, "std": 0.0, "median": 0.0
+        }
+        
     lengths = [np.linalg.norm(p - q) for p, q in edges]
     return {
         "count": len(lengths),
@@ -72,14 +78,30 @@ def analyze_slice(angles: Dict[str, float], w_fixed: float = 0.0, tol: float = 1
     -------
     dict with keys: centroid, bounding_box, vertices, edge_metrics
     """
-    verts, edges = slice_tesseract(angles, w_fixed=w_fixed, tol=tol)
+    try:
+        verts, edges = slice_tesseract(angles, w_fixed=w_fixed, tol=tol)
+    except SliceError:
+        # Return an empty/default analysis if no slice is generated
+        return {
+            "centroid": np.array([0.0, 0.0, 0.0]),
+            "bounding_box": {
+                "x": np.array([0.0, 0.0]),
+                "y": np.array([0.0, 0.0]),
+                "z": np.array([0.0, 0.0]),
+            },
+            "vertices": np.array([]),
+            "edge_metrics": edge_metrics([]),
+        }
+
     centroid = np.mean(verts, axis=0)
     mins = np.min(verts, axis=0)
     maxs = np.max(verts, axis=0)
+    
+    # FIX: Ensure bounding_box values are NumPy arrays, which io_json expects.
     bounding_box = {
-        "x": [mins[0], maxs[0]],
-        "y": [mins[1], maxs[1]],
-        "z": [mins[2], maxs[2]],
+        "x": np.array([mins[0], maxs[0]]),
+        "y": np.array([mins[1], maxs[1]]),
+        "z": np.array([mins[2], maxs[2]]),
     }
 
     return {
