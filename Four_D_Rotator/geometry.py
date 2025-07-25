@@ -98,7 +98,7 @@ def slice_tesseract(
         raise SliceError("Slice did not intersect tesseract in a meaningful way.")
 
     # Use convex hull to get surface edges (triangles), then dedupe into line segments
-    hull = ConvexHull(slice_pts)
+    hull = ConvexHull(slice_pts, qhull_options="QJ")
     edge_indices = set()
     for simplex in hull.simplices:
         for i in range(3):
