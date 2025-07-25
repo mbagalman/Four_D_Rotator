@@ -1,3 +1,6 @@
+from __future__ import annotations
+# That HAS to be first.
+
 ""
 """
 Wavefront OBJ exporter for *tesseract_slice* slices.
@@ -11,8 +14,6 @@ License: MIT
 
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Michael Bagalman
-
-from __future__ import annotations
 
 import time
 from pathlib import Path
