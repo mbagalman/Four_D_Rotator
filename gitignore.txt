@@ -1,0 +1,17 @@
+# Bytecode cache
+__pycache__/
+*.py[cod]
+
+# Distribution and packaging
+build/
+dist/
+*.egg-info/
+
+# Jupyter notebook junk
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
