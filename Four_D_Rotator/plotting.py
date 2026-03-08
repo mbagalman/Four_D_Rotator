@@ -1,5 +1,5 @@
 """
-Matplotlib visualisation helpers for *tesseract_slice*.
+Matplotlib visualisation helpers for *Four_D_Rotator*.
 
 Separated from geometry so non-GUI environments can still import core math.
 
@@ -83,7 +83,9 @@ def plot_slice(
     if show_vertices:
         if color_by_distance:
             d = np.linalg.norm(verts, axis=1)
-            colors = plt.cm.get_cmap(colormap)(d / d.max())
+            denom = float(np.max(d))
+            normalized = np.zeros_like(d) if np.isclose(denom, 0.0) else d / denom
+            colors = plt.cm.get_cmap(colormap)(normalized)
         else:
             colors = vertex_color
         ax.scatter(
@@ -140,23 +142,37 @@ def create_rotation_animation(
     n_frames: int = 60,
     base_angles: Optional[Dict[str, float]] = None,
     w_fixed: float = 0.0,
+    reuse_figure: bool = True,
     **plot_kwargs,
 ) -> Generator[plt.Figure, None, None]:
     """Yield successive Figures rotating *rotation_axis* across *angle_range*.
 
     Yes, it's just a for-loop over frames, but if it makes you feel better,
     consider it a tribute to the Infinite Improbability Drive.
+
+    By default, one figure is reused across frames to avoid accumulating
+    many matplotlib figures in memory.
     """
 
     if rotation_axis not in {"xy", "xz", "yz", "xw", "yw", "zw"}:
         raise ValueError(f"invalid rotation plane '{rotation_axis}'")
 
     fixed = dict(base_angles or {})
+    plot_kwargs = dict(plot_kwargs)
+    ax: Optional[plt.Axes] = plot_kwargs.pop("ax", None)
+    if reuse_figure and ax is None:
+        fig = plt.figure(figsize=plot_kwargs.get("figsize", (8, 8)))
+        ax = fig.add_subplot(111, projection="3d")
+
     # The axis must rotate. The axis *always* rotates. (Muad'Dib intensifies.)
     for ang in np.linspace(angle_range[0], angle_range[1], n_frames):
-        rot = fixed.copy(); rot[rotation_axis] = ang
+        rot = fixed.copy()
+        rot[rotation_axis] = ang
         try:
-            fig = plot_slice(rot, w_fixed=w_fixed, **plot_kwargs)
+            if ax is None:
+                fig = plot_slice(rot, w_fixed=w_fixed, **plot_kwargs)
+            else:
+                fig = plot_slice(rot, w_fixed=w_fixed, ax=ax, **plot_kwargs)
             yield fig
         except SliceError:
             continue  # skip frames where plane misses

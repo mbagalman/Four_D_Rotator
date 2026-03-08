@@ -1,5 +1,5 @@
 """
-Handy rotation presets for *tesseract_slice*.
+Handy rotation presets for *Four_D_Rotator*.
 
 Author: Michael Bagalman
 License: MIT

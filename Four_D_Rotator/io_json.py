@@ -1,5 +1,5 @@
 """
-JSON export utilities and configuration dataclass for *tesseract_slice*.
+JSON export utilities and configuration dataclass for *Four_D_Rotator*.
 
 Author: Michael Bagalman
 License: MIT
@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Tuple, Union
 import numpy as np
 
 from . import __version__
-from .analysis import analyze_slice
+from .analysis import analyze_from_geometry, analyze_slice
 from .geometry import slice_tesseract
 from ._constants import TOL
 
@@ -50,7 +50,7 @@ def export_to_json(
 
     data: Dict[str, Any] = {
         "metadata": {
-            "generator": "tesseract_slice",
+            "generator": "Four_D_Rotator",
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
             "version": __version__,
         },
@@ -64,7 +64,7 @@ def export_to_json(
     }
 
     if include_analysis:
-        analysis = analyze_slice(angles, w_fixed=w_fixed)
+        analysis = analyze_from_geometry(vertices, edges)
         analysis.pop("vertices", None)  # not serializable
         analysis["centroid"] = analysis["centroid"].tolist()
         bb = analysis["bounding_box"]

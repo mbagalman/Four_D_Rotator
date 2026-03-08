@@ -16,11 +16,11 @@ from __future__ import annotations
 
 from typing import Dict
 import numpy as np
-from scipy.spatial import ConvexHull
 
+from ._constants import TOL
 from .geometry import slice_tesseract, Edge, SliceError
 
-__all__ = ["edge_metrics", "analyze_slice"]
+__all__ = ["edge_metrics", "analyze_from_geometry", "analyze_slice"]
 
 
 # ---------------------------------------------------------------------------
@@ -56,11 +56,42 @@ def edge_metrics(edges: list[Edge]) -> Dict[str, float]:
     }
 
 
+def analyze_from_geometry(vertices: np.ndarray, edges: list[Edge]) -> Dict[str, object]:
+    """Return centroid, bounding box, vertices, and edge metrics from given geometry."""
+    if len(vertices) == 0:
+        return {
+            "centroid": np.array([0.0, 0.0, 0.0]),
+            "bounding_box": {
+                "x": np.array([0.0, 0.0]),
+                "y": np.array([0.0, 0.0]),
+                "z": np.array([0.0, 0.0]),
+            },
+            "vertices": np.array([]),
+            "edge_metrics": edge_metrics([]),
+        }
+
+    centroid = np.mean(vertices, axis=0)
+    mins = np.min(vertices, axis=0)
+    maxs = np.max(vertices, axis=0)
+    bounding_box = {
+        "x": np.array([mins[0], maxs[0]]),
+        "y": np.array([mins[1], maxs[1]]),
+        "z": np.array([mins[2], maxs[2]]),
+    }
+
+    return {
+        "centroid": centroid,
+        "bounding_box": bounding_box,
+        "vertices": vertices,
+        "edge_metrics": edge_metrics(edges),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Full analysis summary
 # ---------------------------------------------------------------------------
 
-def analyze_slice(angles: Dict[str, float], w_fixed: float = 0.0, tol: float = 1e-6) -> Dict[str, object]:
+def analyze_slice(angles: Dict[str, float], w_fixed: float = 0.0, tol: float = TOL) -> Dict[str, object]:
     """Return centroid, bounding box, and edge statistics for a slice.
 
     This is the function you call when you want the numbers to speak.
@@ -81,32 +112,6 @@ def analyze_slice(angles: Dict[str, float], w_fixed: float = 0.0, tol: float = 1
     try:
         verts, edges = slice_tesseract(angles, w_fixed=w_fixed, tol=tol)
     except SliceError:
-        # Return an empty/default analysis if no slice is generated
-        return {
-            "centroid": np.array([0.0, 0.0, 0.0]),
-            "bounding_box": {
-                "x": np.array([0.0, 0.0]),
-                "y": np.array([0.0, 0.0]),
-                "z": np.array([0.0, 0.0]),
-            },
-            "vertices": np.array([]),
-            "edge_metrics": edge_metrics([]),
-        }
+        return analyze_from_geometry(np.array([]), [])
 
-    centroid = np.mean(verts, axis=0)
-    mins = np.min(verts, axis=0)
-    maxs = np.max(verts, axis=0)
-    
-    # FIX: Ensure bounding_box values are NumPy arrays, which io_json expects.
-    bounding_box = {
-        "x": np.array([mins[0], maxs[0]]),
-        "y": np.array([mins[1], maxs[1]]),
-        "z": np.array([mins[2], maxs[2]]),
-    }
-
-    return {
-        "centroid": centroid,
-        "bounding_box": bounding_box,
-        "vertices": verts,
-        "edge_metrics": edge_metrics(edges),
-    }
+    return analyze_from_geometry(verts, edges)

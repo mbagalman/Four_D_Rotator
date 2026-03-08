@@ -39,6 +39,12 @@ class SliceError(Exception):
     pass
 
 
+def _round_decimals_for_tol(tol: float) -> int:
+    """Derive a rounding precision consistent with the requested tolerance."""
+    safe_tol = max(float(tol), 1e-15)
+    return max(0, int(np.ceil(-np.log10(safe_tol))))
+
+
 # ---------------------------------------------------------------------------
 # Core math utilities
 # ---------------------------------------------------------------------------
@@ -57,22 +63,26 @@ def _get_tesseract_geometry() -> Tuple[np.ndarray, np.ndarray]:
     """
     verts = np.array(
         [
-            [x, y, z, w]
-            for x in (-0.5, 0.5)
-            for y in (-0.5, 0.5)
-            for z in (-0.5, 0.5)
-            for w in (-0.5, 0.5)
-        ]
+            [
+                0.5 if (i >> 3) & 1 else -0.5,  # x
+                0.5 if (i >> 2) & 1 else -0.5,  # y
+                0.5 if (i >> 1) & 1 else -0.5,  # z
+                0.5 if i & 1 else -0.5,         # w
+            ]
+            for i in range(16)
+        ],
+        dtype=float,
     )
-    
+
+    # In a hypercube, vertices share an edge when they differ by one bit.
     edges = []
     for i in range(16):
-        for j in range(i + 1, 16):
-            # An edge connects vertices if the distance is 1 (side length)
-            if np.isclose(np.linalg.norm(verts[i] - verts[j]), 1.0):
+        for dim in range(4):
+            j = i ^ (1 << dim)
+            if i < j:
                 edges.append((i, j))
-    
-    return verts, np.array(edges)
+
+    return verts, np.array(edges, dtype=int)
 
 
 @lru_cache(maxsize=128)
@@ -82,7 +92,7 @@ def _rotation_matrix(angles: Tuple[Tuple[str, float], ...]) -> np.ndarray:
 
     Example input: (("xy", 0.5), ("zw", -0.2))
     This function supports composition of rotations in multiple planes.
-    Order matters, so we sort them in slice_tesseract before caching.
+    Order matters; the tuple order is applied as provided by the caller.
     """
     mat = np.eye(4)
     for plane, theta in angles:
@@ -141,7 +151,8 @@ def slice_tesseract(
         invalid = [k for k in angles.keys() if k not in VALID_KEYS]
         raise ValueError(f"Invalid angle keys provided: {invalid}")
 
-    rot = _rotation_matrix(tuple(sorted(angles.items())))
+    # Preserve insertion order from caller (rotation composition is non-commutative).
+    rot = _rotation_matrix(tuple(angles.items()))
     rotated_verts = verts4d_orig @ rot.T
 
     intersection_points = []
@@ -153,7 +164,7 @@ def slice_tesseract(
         # Case 1: Edge crosses the slicing plane.
         if (w1 < w_fixed and w2 > w_fixed) or (w2 < w_fixed and w1 > w_fixed):
             # Linearly interpolate to find the intersection point.
-            if np.isclose(w1, w2):
+            if np.isclose(w1, w2, atol=tol):
                 continue
             t = (w_fixed - w1) / (w2 - w1)
             intersection = p1 + t * (p2 - p1)
@@ -167,9 +178,10 @@ def slice_tesseract(
     if not intersection_points:
         raise SliceError("Slice plane does not intersect the tesseract.")
 
-    # Remove duplicate points using rounding to a set precision.
+    # Remove duplicate points using precision derived from tolerance.
     # This handles cases where multiple edges meet at a vertex on the slicing plane.
-    unique_pts_tuples = {tuple(np.round(p, 8)) for p in intersection_points}
+    decimals = _round_decimals_for_tol(tol)
+    unique_pts_tuples = {tuple(np.round(p, decimals)) for p in intersection_points}
     slice_pts = np.array([list(p) for p in unique_pts_tuples])
 
     if slice_pts.shape[0] < 4:

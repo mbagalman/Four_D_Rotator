@@ -22,10 +22,24 @@ Functions:
 __version__ = "1.0.0"
 
 from .geometry import slice_tesseract, SliceError
-from .plotting import plot_slice
-from .demos import demo_slices, interactive_demo
 from .io_obj import export_to_obj
 from .io_json import export_to_json, SliceConfig
+
+# Optional viz imports: keep core package usable in non-GUI environments.
+try:
+    from .plotting import plot_slice
+    from .demos import demo_slices, interactive_demo
+except ImportError as _viz_import_error:
+    _VIZ_IMPORT_ERROR = _viz_import_error
+
+    def _raise_viz_import_error(*args, **kwargs):
+        raise ImportError(
+            "Visualization features require optional dependencies (e.g., matplotlib, ipywidgets)."
+        ) from _VIZ_IMPORT_ERROR
+
+    plot_slice = _raise_viz_import_error
+    demo_slices = _raise_viz_import_error
+    interactive_demo = _raise_viz_import_error
 
 __all__ = [
     "slice_tesseract",

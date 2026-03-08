@@ -1,5 +1,5 @@
 """
-Global constants for the *tesseract_slice* package.
+Global constants for the *Four_D_Rotator* package.
 
 Includes common tolerances, valid axis names, and configurable defaults
 used across modules.
