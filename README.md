@@ -2,99 +2,75 @@
 
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-Explore the geometry of a rotating hypercube—also known as a tesseract—sliced into 3D space. Perfect for data scientists, educators, and geometry nerds who always suspected the fourth dimension was just shy.
+> Note: This project is early work and has been superseded by [4D-Tesseractinator](https://github.com/mbagalman/4D-Tesseractinator), which is the active project and the better version going forward. This repository will remain public in case the earlier work is useful to anyone.
 
-This project offers clean, well-commented Python code to:
+Explore slices of a rotating 4D hypercube (tesseract) in 3D.
 
-- Define a 4D cube (tesseract)
-- Rotate it in any of the 6 rotation planes (e.g., `xy`, `xw`, etc.)
-- Slice it into 3D space for visualization
-- Render the resulting geometry with matplotlib
-- Save interesting configurations to JSON
-- Run interactive demos in a Jupyter notebook
+## Features
 
----
+- Build and rotate a 4D tesseract in any of the 6 rotation planes (`xy`, `xz`, `yz`, `xw`, `yw`, `zw`)
+- Slice along a fixed `w` hyperplane
+- Visualize slices with matplotlib
+- Export geometry to JSON and OBJ
+- Analyze slice metrics (centroid, bounding box, edge statistics)
+- Run gallery and interactive Jupyter demos
 
-## 🚀 Quickstart
-
-### 1. Clone the repository
+## Installation
 
 ```bash
 git clone https://github.com/mbagalman/Four_D_Rotator.git
 cd Four_D_Rotator
 ```
 
-### 2. Install the package
+Core install (math + export + analysis):
 
 ```bash
 pip install .
 ```
 
----
+Install with visualization extras:
 
-## 📦 Requirements
+```bash
+pip install ".[viz]"
+```
 
-- Python 3.8+
-- NumPy
-- SciPy
-- Matplotlib
-- ipywidgets (for interactive demo)
-
-You can install them all with:
+Install full convenience environment from `requirements.txt`:
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
+## Quick Usage
 
-## 📓 Try It in Jupyter
+```python
+from Four_D_Rotator.geometry import slice_tesseract
+from Four_D_Rotator.io_json import export_to_json
 
-Launch the interactive viewer:
+angles = {"xy": 0.6, "xz": 1.1, "xw": 0.9}
+vertices, edges = slice_tesseract(angles)
+export_to_json(vertices, edges, angles, filename="my_hypercube_slice.json")
+```
+
+Interactive demo (requires viz dependencies):
 
 ```python
 from Four_D_Rotator.demos import interactive_demo
 interactive_demo()
 ```
 
-This will display sliders for each rotation plane. Explore how different angles affect the 3D slice. It's like flying a tesseract with knobs.
-
-Or use Binder:
-
+Binder notebook:
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/mbagalman/Four_D_Rotator/main?labpath=Four_D_Rotator_Demo.ipynb)
 
----
+## Testing
 
-## 🎨 Save Your Favorite Slice
+Run the local test suite:
 
-Find a rotation you like using the sliders! Then, copy the angle values into the `my_angles` dictionary below and run this code to save your unique creation:
-
-```python
-from Four_D_Rotator.io_json import export_to_json
-from Four_D_Rotator.geometry import slice_tesseract
-
-my_angles = {
-    "xy": 0.6,
-    "xz": 1.1,
-    "xw": 0.9,
-}
-
-vertices, edges = slice_tesseract(my_angles)
-export_to_json(vertices, edges, my_angles, filename="my_hypercube_slice.json")
+```bash
+python3 -m unittest discover -s tests -p "test_*.py" -v
 ```
 
----
+GitHub Actions also runs tests on push and pull request.
 
-## 🤖 CLI and Gallery Support (Coming Soon)
+## License
 
-Stay tuned for command-line utilities to generate animations and a gallery of iconic tesseract slices. Suggestions welcome!
-
----
-
-## 🧠 Credits & License
-
-Created by Michael Bagalman. MIT License.
-
-And yes, we considered calling this project *Mostly Harmless Geometry*.
-
-
+MIT. See `LICENSE.md`.
